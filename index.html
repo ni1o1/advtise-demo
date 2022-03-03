@@ -2,17 +2,128 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta charset="utf-8">
+    <title>Demo</title>
+    <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+    <script src="https://lib.baomitu.com/Turf.js/6.5.0/turf.min.js"></script>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
 </head>
 
 <body>
+    <div id="map"></div>
+    <script type="text/javascript">
+        //读取建筑数据demo
+        $.getJSON('data/bd_demo.json', function(building) {
+
+            console.log(building)
+                /*-----算法输入:广告基本信息------*/
+                //广告所在位置
+            const ad_pos = turf.lineString([
+                [139.69831, 35.53280],
+                [139.69731, 35.53380]
+            ]);
+            //广告高度
+            const ad_bottom = 100
+            const ad_top = 200
+
+            /*-----算法:广告影响范围计算----*/
 
 
 
 
+
+            //广告影响范围
+            const area = turf.polygon([
+                [
+                    [139.69831, 35.53280],
+                    [139.69980, 35.53280],
+                    [139.69980, 35.53380],
+                    [139.69831, 35.53380],
+                    [139.69831, 35.53280]
+                ]
+            ], {
+                name: 'poly1'
+            });
+
+            /*-----地图可视化配置------*/
+            //地图配置
+            mapboxglToken = "pk.eyJ1IjoibmkxbzEiLCJhIjoiY2t3ZDgzMmR5NDF4czJ1cm84Z3NqOGt3OSJ9.yOYP6pxDzXzhbHfyk3uORg"
+            mapboxgl.accessToken = mapboxglToken
+            var map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/dark-v10',
+                center: [139.69980, 35.53280],
+                zoom: 16,
+                pitch: 60,
+                bearing: 20,
+                antialias: true
+            });
+
+            map.on('load', () => {
+
+                //展示阴影
+                map.addSource('area', {
+                    'type': 'geojson',
+                    'data': area
+                })
+                map.addLayer({
+                        'id': 'area',
+                        'source': 'area',
+                        'type': 'fill',
+                        'paint': {
+                            'fill-color': 'yellow',
+                        }
+                    })
+                    //展示广告位置
+                map.addSource('AD', {
+                    'type': 'geojson',
+                    'data': ad_pos
+                })
+                map.addLayer({
+                        'id': 'AD',
+                        'source': 'AD',
+                        'type': 'line',
+                        'paint': {
+                            'line-color': 'red',
+                            'line-width': 8
+                        }
+                    })
+                    //展示建筑
+                map.addSource('building', {
+                    'type': 'geojson',
+                    'data': building
+                })
+                map.addLayer({
+                    'id': '3d-buildings',
+                    'source': 'building',
+                    'type': 'fill-extrusion',
+                    'paint': {
+                        'fill-extrusion-color': '#ddd',
+                        'fill-extrusion-base': 0,
+                        'fill-extrusion-height': ['get', 'height'],
+                        'fill-extrusion-opacity': 1
+                    }
+                })
+
+            })
+
+        })
+    </script>
 </body>
 
 </html>
