@@ -33,24 +33,24 @@ function calVisualArea(brandCenterPoint, z, positionAngle, xResolution = 0.01, i
 
     var visualCenter = turf.rhumbDestination(brandCenterPoint, visualGroundR,
         positionAngle, { units: 'kilometers' });
-    console.log("destination", visualCenter);
+    //console.log("destination", visualCenter);
 
 
     var visualArea = {
-        'brandCenterPoint': brandCenterPoint,
-        'visualR': visualR,
-        'visualGroundR': visualGroundR,
-        'visualCenter': visualCenter,
-        'visualHeight': visualHeight
-    }
-    console.log("visualArea = ", visualArea);
+            'brandCenterPoint': brandCenterPoint,
+            'visualR': visualR,
+            'visualGroundR': visualGroundR,
+            'visualCenter': visualCenter,
+            'visualHeight': visualHeight
+        }
+        //console.log("visualArea = ", visualArea);
     return visualArea;
 }
 
 //获取地面的可视坐标点
 function getCirclePosition(visualArea) {
 
-    console.log(visualArea);
+    //console.log(visualArea);
     var options = { steps: 360, units: 'kilometers' };
 
     //方法一：生成圆弧线转面
@@ -61,7 +61,7 @@ function getCirclePosition(visualArea) {
 
     //生成圆弧面sector 
     var circlePoly = turf.circle(visualArea.visualCenter, visualArea.visualGroundR, options);
-    console.log("circlePoly = ", circlePoly);
+    //console.log("circlePoly = ", circlePoly);
 
     return circlePoly;
 }
@@ -87,7 +87,7 @@ function getVisualBuilding(circlePoly, buildings) {
             try {
                 exceptBuildingsPoly = turf.intersect(exceptBuildingsPoly, buildingShape);
             } catch (e) {
-                console.log(e);
+                //console.log(e);
             }
 
             //console.log(buildingsUnion);
@@ -125,12 +125,12 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
     var visualCoord = visualArea.visualCenter.geometry.coordinates; //可视范围的中心点
     var visualGroundR = visualArea.visualGroundR; //可视区半径
 
-    console.log("visualArea", adCoord);
+    //console.log("visualArea", adCoord);
     var buildingHeight;
     var multiBuildPoly = visualBuildings.multiBuildPoly; //
     var buildNumber = multiBuildPoly.geometry.coordinates.length; //建筑物个数
 
-    console.log("multiBuildPoly = ", multiBuildPoly)
+    //console.log("multiBuildPoly = ", multiBuildPoly)
 
     //外包矩形
 
@@ -138,7 +138,7 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
     var circleR = Math.max(bbox[2] - bbox[0], bbox[3] - bbox[1]);
 
     //circleR *= 100;
-    console.log("circleR = ", circleR);
+    //console.log("circleR = ", circleR);
 
     var union = visualBuildings.exceptBuildingsPoly;
 
@@ -249,10 +249,10 @@ function calvisibleArea(circlePoly, buildingShadow) {
             try {
                 union = turf.intersect(polygonDiff, union);
             } catch (e) {
-                console.log(e);
+                //console.log(e);
             }
         }
     });
-    console.log(union);
+    //console.log(union);
     return union;
 }
