@@ -217,13 +217,14 @@ function calShadow(circlePoly, visualBuildings, visualArea) {
                     //console.log(nextCoord);
                 }
 
-                var currentAngle = turf.bearingToAzimuth(turf.bearing(adCoord, currentCoord)); //turf.bearingToAzimuth
-                var nextAngle = turf.bearingToAzimuth(turf.bearing(adCoord, nextCoord));
-                //console.log("currentAngle,nextAngle", Math.min(currentAngle, nextAngle), Math.max(nextAngle, currentAngle));
-
+                var currentAngle = (turf.bearing(adCoord, currentCoord));//turf.bearingToAzimuth
+                var nextAngle = (turf.bearing(adCoord, nextCoord));
+                
                 if (currentAngle != nextAngle) {
-                    var arc = turf.lineArc(adCoord, visualGroundR * 2, Math.min(currentAngle, nextAngle),
-                        Math.max(nextAngle, currentAngle)).geometry.coordinates;
+
+                    var arc = turf.lineArc(adCoord, visualGroundR * 2, turf.bearingToAzimuth(Math.min(currentAngle, nextAngle)),
+                        turf.bearingToAzimuth(Math.max(nextAngle, currentAngle))).geometry.coordinates;
+                        
                     arc.push(nextCoord);
                     arc.unshift(currentCoord);
                     arc.push(currentCoord);
