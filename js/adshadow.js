@@ -5,7 +5,6 @@ function angleToRadian(angle) {
 function radianToAngle(radian) {
     return radian * 180 / Math.PI;
 };
-//输入一段代码试试
 
 //计算可视区域形状
 function calVisualArea(brandCenterPoint, z, positionAngle, xResolution = 0.01, isAngle = true,
@@ -33,31 +32,26 @@ function calVisualArea(brandCenterPoint, z, positionAngle, xResolution = 0.01, i
     brandCenterPoint = turf.toWgs84(brandCenterPoint);
 
     var visualCenter = turf.rhumbDestination(brandCenterPoint, visualGroundR,
-        positionAngle, {
-            units: 'kilometers'
-        });
-    //console.log("destination", visualCenter);
+        positionAngle, { units: 'kilometers' });
+    console.log("destination", visualCenter);
 
 
     var visualArea = {
-            'brandCenterPoint': brandCenterPoint,
-            'visualR': visualR,
-            'visualGroundR': visualGroundR,
-            'visualCenter': visualCenter,
-            'visualHeight': visualHeight
-        }
-        //console.log("visualArea = ", visualArea);
+        'brandCenterPoint': brandCenterPoint,
+        'visualR': visualR,
+        'visualGroundR': visualGroundR,
+        'visualCenter': visualCenter,
+        'visualHeight': visualHeight
+    }
+    console.log("visualArea = ", visualArea);
     return visualArea;
 }
 
 //获取地面的可视坐标点
 function getCirclePosition(visualArea) {
 
-    //console.log(visualArea);
-    var options = {
-        steps: 360,
-        units: 'kilometers'
-    };
+    console.log(visualArea);
+    var options = { steps: 360, units: 'kilometers' };
 
     //方法一：生成圆弧线转面
     //var circleLine = turf.lineArc(visualArea.visualCenter, visualArea.visualGroundR, 0, 360, options); //计算圆所有的点
@@ -67,7 +61,7 @@ function getCirclePosition(visualArea) {
 
     //生成圆弧面sector 
     var circlePoly = turf.circle(visualArea.visualCenter, visualArea.visualGroundR, options);
-    //console.log("circlePoly = ", circlePoly);
+    console.log("circlePoly = ", circlePoly);
 
     return circlePoly;
 }
@@ -93,7 +87,7 @@ function getVisualBuilding(circlePoly, buildings) {
             try {
                 exceptBuildingsPoly = turf.intersect(exceptBuildingsPoly, buildingShape);
             } catch (e) {
-                //console.log(e);
+                console.log(e);
             }
 
             //console.log(buildingsUnion);
@@ -123,7 +117,7 @@ function getVisualBuilding(circlePoly, buildings) {
 }
 
 //计算阴影
-function calShadow(circlePoly, visualBuildings, visualArea) {
+function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
 
     //对边界遍历获取阴影部分
     var adHeight = visualArea.visualHeight * 1000; //可视区域高度
@@ -131,12 +125,12 @@ function calShadow(circlePoly, visualBuildings, visualArea) {
     var visualCoord = visualArea.visualCenter.geometry.coordinates; //可视范围的中心点
     var visualGroundR = visualArea.visualGroundR; //可视区半径
 
-    //console.log("visualArea", adCoord);
+    console.log("visualArea", adCoord);
     var buildingHeight;
     var multiBuildPoly = visualBuildings.multiBuildPoly; //
     var buildNumber = multiBuildPoly.geometry.coordinates.length; //建筑物个数
 
-    //console.log("multiBuildPoly = ", multiBuildPoly)
+    console.log("multiBuildPoly = ", multiBuildPoly)
 
     //外包矩形
 
@@ -144,7 +138,7 @@ function calShadow(circlePoly, visualBuildings, visualArea) {
     var circleR = Math.max(bbox[2] - bbox[0], bbox[3] - bbox[1]);
 
     //circleR *= 100;
-    //console.log("circleR = ", circleR);
+    console.log("circleR = ", circleR);
 
     var union = visualBuildings.exceptBuildingsPoly;
 
@@ -180,28 +174,15 @@ function calShadow(circlePoly, visualBuildings, visualArea) {
                 const nextX = -buildingHeight / (adHeight - buildingHeight) * (adCoord[0] - nextCoord[0]) + nextCoord[0];
                 const nextY = -buildingHeight / (adHeight - buildingHeight) * (adCoord[1] - nextCoord[1]) + nextCoord[1];
 
-                var polygon1 = turf.polygon([
+                var polygon = turf.polygon([
                     [
                         [currentX, currentY],
                         [nextX, nextY], nextCoord, currentCoord, [currentX, currentY]
                     ]
-                ], {
-                    name: 'poly1'
-                });
-                //var polygon = turf.intersect(polygon1, circlePoly);
-                //console.log(polygon2,polygon1);
+                ], { name: 'poly1' });
 
-                if (polygon1 != null) {
-
-                    var polygonDiff = turf.difference(circlePoly, polygon1); //计算差异
-                    if (polygonDiff != null && union != null) {
-                        try {
-                            union = turf.intersect(polygonDiff, union);
-                        } catch (e) {
-                            //console.log(e);
-                        }
-                    }
-                    buildingShadow.push(polygon1);
+                if (polygon != null) {
+                    buildingShadow.push(polygon);
                 }
             });
 
@@ -214,17 +195,19 @@ function calShadow(circlePoly, visualBuildings, visualArea) {
                     //console.log(nextCoord);
                 } else {
                     nextCoord = currentBuilding.coordinates[0][coordIndex + 1];
-                    //console.log(nextCoord);
                 }
 
-                var currentAngle = (turf.bearing(adCoord, currentCoord));//turf.bearingToAzimuth
+                var currentAngle = (turf.bearing(adCoord, currentCoord)); //turf.bearingToAzimuth
                 var nextAngle = (turf.bearing(adCoord, nextCoord));
-                
+                //console.log("currentAngle,nextAngle", turf.bearing(adCoord, currentCoord), turf.bearing(adCoord, nextCoord),
+                //   Math.min(currentAngle, nextAngle), Math.max(nextAngle, currentAngle));
+
                 if (currentAngle != nextAngle) {
 
                     var arc = turf.lineArc(adCoord, visualGroundR * 2, turf.bearingToAzimuth(Math.min(currentAngle, nextAngle)),
                         turf.bearingToAzimuth(Math.max(nextAngle, currentAngle))).geometry.coordinates;
-                        
+
+                    //console.log(nextCooord,currentCoord)
                     arc.push(nextCoord);
                     arc.unshift(currentCoord);
                     arc.push(currentCoord);
@@ -234,22 +217,8 @@ function calShadow(circlePoly, visualBuildings, visualArea) {
                     //console.log(polygon,polygon1);
                     if (polygon != null) {
 
-                        var polygonDiff = turf.difference(circlePoly, polygon); //计算差异
-                        if (polygonDiff != null && union != null) {
-
-                            //console.log(buildingHeight, polygonDiff, union);
-                            try {
-                                union = turf.intersect(polygonDiff, union);
-                            } catch (e) {
-                                //console.log(e);
-                            }
-
-                            //.catch((e) => {});
-                        }
-
                         buildingShadow.push(polygon);
                     }
-
                 }
 
             }); //coordEach
@@ -257,17 +226,33 @@ function calShadow(circlePoly, visualBuildings, visualArea) {
     } //for building
 
     var buildingShadow = turf.featureCollection(buildingShadow);
-    let visualPoly
-    if (union != null) {
-        visualPoly = turf.intersect(circlePoly, union);
-    } else {
-        visualPoly = null;
-    }
 
-    visualAreaShadow = {
+    const visualAreaShadow = {
         'buildingShadow': buildingShadow,
-        'visualPoly': visualPoly
+        //'visualPoly': visualPoly
 
     }
     return (visualAreaShadow);
 } //function
+
+//计算最后的可视区域
+function calvisibleArea(circlePoly, buildingShadow) {
+    var polygonDiff;
+    var union = circlePoly;
+    //统计建筑物地面形状
+    turf.geomEach(buildingShadow, function(currentGeometry, featureIndex) {
+
+        //console.log(currentGeometry, featureIndex);
+        polygonDiff = turf.difference(circlePoly, currentGeometry); //计算差异
+        if (polygonDiff != null && union != null) {
+            //console.log(union);
+            try {
+                union = turf.intersect(polygonDiff, union);
+            } catch (e) {
+                console.log(e);
+            }
+        }
+    });
+    console.log(union);
+    return union;
+}

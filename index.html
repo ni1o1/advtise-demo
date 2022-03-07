@@ -89,10 +89,11 @@
             var idSelected = visualBuildings.idSelected;
             var exceptBuildingsPoly = visualBuildings.exceptBuildingsPoly;
 
-            var visualAreaShadow = calShadow(circlePoly, visualBuildings, visualArea); //计算建筑阴影
-            var buildingShadow = visualAreaShadow.buildingShadow;
-            var visualPoly = visualAreaShadow['visualPoly'];
 
+            var visualAreaShadow = calBuildingsShadow(circlePoly, visualBuildings, visualArea); //计算建筑阴影
+            var buildingShadow = visualAreaShadow.buildingShadow;
+
+            var visualPoly = calvisibleArea(circlePoly, buildingShadow);
 
 
             /*-----地图可视化配置------*/
