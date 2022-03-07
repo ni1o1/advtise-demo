@@ -149,7 +149,7 @@
         }
 
         //计算阴影
-        function calShadow(circlePoly, visualBuildings, visualArea) {
+        function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
 
             //对边界遍历获取阴影部分
             var adHeight = visualArea.visualHeight * 1000;  //可视区域高度
@@ -206,21 +206,10 @@
                         nextX = -buildingHeight / (adHeight - buildingHeight) * (adCoord[0] - nextCoord[0]) + nextCoord[0];
                         nextY = -buildingHeight / (adHeight - buildingHeight) * (adCoord[1] - nextCoord[1]) + nextCoord[1];
 
-                        var polygon1 = turf.polygon([[[currentX, currentY], [nextX, nextY], nextCoord, currentCoord, [currentX, currentY]]], { name: 'poly1' });
-                        //var polygon = turf.intersect(polygon1, circlePoly);
-                        //console.log(polygon2,polygon1);
+                        var polygon = turf.polygon([[[currentX, currentY], [nextX, nextY], nextCoord, currentCoord, [currentX, currentY]]], { name: 'poly1' });
 
-                        if (polygon1 != null) {
-
-                            var polygonDiff = turf.difference(circlePoly, polygon1); //计算差异
-                            if (polygonDiff != null && union != null) {
-                                try {
-                                    union = turf.intersect(polygonDiff, union);
-                                } catch (e) {
-                                    console.log(e);
-                                }
-                            }
-                            buildingShadow.push(polygon1);
+                        if (polygon != null) {
+                            buildingShadow.push(polygon);
                         }
                     });
 
@@ -232,16 +221,19 @@
                             //console.log(nextCoord);
                         } else {
                             nextCoord = currentBuilding.coordinates[0][coordIndex + 1];
-                            //console.log(nextCoord);
                         }
 
-                        var currentAngle = turf.bearingToAzimuth(turf.bearing(adCoord, currentCoord));//turf.bearingToAzimuth
-                        var nextAngle = turf.bearingToAzimuth(turf.bearing(adCoord, nextCoord));
-                        //console.log("currentAngle,nextAngle", Math.min(currentAngle, nextAngle), Math.max(nextAngle, currentAngle));
+                        var currentAngle = (turf.bearing(adCoord, currentCoord));//turf.bearingToAzimuth
+                        var nextAngle = (turf.bearing(adCoord, nextCoord));
+                        //console.log("currentAngle,nextAngle", turf.bearing(adCoord, currentCoord), turf.bearing(adCoord, nextCoord),
+                        //   Math.min(currentAngle, nextAngle), Math.max(nextAngle, currentAngle));
 
                         if (currentAngle != nextAngle) {
-                            var arc = turf.lineArc(adCoord, visualGroundR * 2, Math.min(currentAngle, nextAngle),
-                                Math.max(nextAngle, currentAngle)).geometry.coordinates;
+
+                            var arc = turf.lineArc(adCoord, visualGroundR * 2, turf.bearingToAzimuth(Math.min(currentAngle, nextAngle)),
+                                turf.bearingToAzimuth(Math.max(nextAngle, currentAngle))).geometry.coordinates;
+
+                            //console.log(nextCooord,currentCoord)
                             arc.push(nextCoord);
                             arc.unshift(currentCoord);
                             arc.push(currentCoord);
@@ -251,22 +243,8 @@
                             //console.log(polygon,polygon1);
                             if (polygon != null) {
 
-                                var polygonDiff = turf.difference(circlePoly, polygon); //计算差异
-                                if (polygonDiff != null && union != null) {
-
-                                    console.log(buildingHeight, polygonDiff, union);
-                                    try {
-                                        union = turf.intersect(polygonDiff, union);
-                                    } catch (e) {
-                                        console.log(e);
-                                    }
-
-                                    //.catch((e) => {});
-                                }
-
                                 buildingShadow.push(polygon);
                             }
-
                         }
 
                     });//coordEach
@@ -274,19 +252,36 @@
             }//for building
 
             var buildingShadow = turf.featureCollection(buildingShadow);
-            if (union != null) {
-                visualPoly = turf.intersect(circlePoly, union);
-            } else {
-                visualPoly = null;
-            }
 
             visualAreaShadow = {
                 'buildingShadow': buildingShadow,
-                'visualPoly': visualPoly
+                //'visualPoly': visualPoly
 
             }
             return (visualAreaShadow);
         }//function
+
+        //计算最后的可视区域
+        function calvisibleArea(circlePoly, buildingShadow) {
+            var polygonDiff;
+            var union = circlePoly;
+            //统计建筑物地面形状
+            turf.geomEach(buildingShadow, function (currentGeometry, featureIndex) {
+
+                //console.log(currentGeometry, featureIndex);
+                polygonDiff = turf.difference(circlePoly, currentGeometry); //计算差异
+                if (polygonDiff != null && union != null) {
+                    //console.log(union);
+                    try {
+                        union = turf.intersect(polygonDiff, union);
+                    } catch (e) {
+                        console.log(e);
+                    }
+                }
+            });
+            console.log(union);
+            return union;
+        }
 
 
         //读取建筑数据demo
@@ -301,8 +296,11 @@
 
             /*-----算法输入:广告基本信息------*/
             const adPosition = turf.lineString([
-                [139.71385194131568, 35.54231803134697],
-                [139.70793695164346, 35.54611545979102]
+                //[139.71385194131568, 35.54231803134697],
+                //[139.70793695164346, 35.54611545979102]
+                [139.7089289928733, 35.5430972230505],
+                [139.70945702322376, 35.54310211250271]
+
                 //[139.704288, 35.555154],
                 //[139.704328, 35.555129]
                 //[139.703884, 35.542902],
@@ -311,8 +309,8 @@
             ]);
 
             //广告高度
-            const adBottom = 50
-            const adTop = 60
+            const adBottom = 10;
+            const adTop = 20;
             anglePN = true; //广告牌角度
 
             //广告牌中心点
@@ -346,9 +344,10 @@
             var idSelected = visualBuildings.idSelected;
             var exceptBuildingsPoly = visualBuildings.exceptBuildingsPoly;
 
-            var visualAreaShadow = calShadow(circlePoly, visualBuildings, visualArea);   //计算建筑阴影
+            var visualAreaShadow = calBuildingsShadow(circlePoly, visualBuildings, visualArea);   //计算建筑阴影
             var buildingShadow = visualAreaShadow.buildingShadow;
-            var visualPoly = visualAreaShadow['visualPoly'];
+
+            var visualPoly = calvisibleArea(circlePoly, buildingShadow);
 
 
 
