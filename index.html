@@ -6,7 +6,7 @@
     <title>Demo</title>
 
     <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js" integrity="sha512-Q7HOppxoH0L2M7hreVoFCtUZimR2YaY0fBewIYzkCgmNtgOOZ5IgMNYxHgfps0qrO1ef5m7L1FeHrhXlq1I9HA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.js"></script>
@@ -33,7 +33,7 @@
     <script type="text/javascript">
         //读取建筑数据demo
         $.getJSON('data/bd_demo.json', function(building) {
-            //console.log(building); //.features[0].properties.id
+            console.log(building); //.features[0].properties.id
             var option = {
                 mutate: true
             };
@@ -56,8 +56,8 @@
             ]);
 
             //广告高度
-            const adBottom = 10
-            const adTop = 30
+            const adBottom = 500
+            const adTop = 600
             const anglePN =false; //广告牌角度
 
             //广告牌中心点
@@ -82,21 +82,28 @@
 
             /*-----算法:广告影响范围计算----*/
             //初始范围
+            var start = new Date().getTime();
             var visualArea = calVisualArea(midHorizontalMerPoint[0], midVerticalPoint, positionAngle,
                 xResolution = 0.01, isAngle = true, eyeResolution = 3); //
             var circlePoly = getCirclePosition(visualArea); //绘制影响圆形范围
+            
 
             //减去建筑阴影范围
             var visualBuildings = getVisualBuilding(circlePoly, building); //计算可视范围内的建筑
             var idSelected = visualBuildings.idSelected;
-            var exceptBuildingsPoly = visualBuildings.exceptBuildingsPoly;
-
+            console.log(idSelected);
+            //var exceptBuildingsPoly = visualBuildings.exceptBuildingsPoly;
+            var end = new Date().getTime();
+            console.log('cost is', `${end - start}ms`);
 
             var visualAreaShadow = calBuildingsShadow(circlePoly, visualBuildings, visualArea); //计算建筑阴影
+            
             var buildingShadow = visualAreaShadow.buildingShadow;
+            
 
             var visualPoly = calvisibleArea(circlePoly, buildingShadow);
 
+            console.log(building); //.features[0].properties.id
 
             /*-----地图可视化配置------*/
             //地图配置
@@ -213,9 +220,7 @@
                 });
 
 
-                map.setFilter('buildings-highlighted', ['in', ['get', 'id'],
-                    ['literal', idSelected]
-                ]);
+                map.setFilter('buildings-highlighted', ['in', ['get', 'id'],['literal', idSelected]]);
             });
 
         })

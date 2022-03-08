@@ -21,7 +21,12 @@ function calVisualArea(brandCenterPoint, z, positionAngle, xResolution = 0.01, i
     var D = xResolution / eyeResolution;
     //半径
     var visualR = D / 2;
-    var visualGroundR = Math.sqrt((Math.pow(D, 2)) / 4 - (Math.pow(z, 2))); //地面上的可视化半径
+    if(visualR>z){
+        var visualGroundR = Math.sqrt((Math.pow(D, 2)) / 4 - (Math.pow(z, 2))); //地面上的可视化半径
+    }else{
+        var visualGroundR = 0;
+    }
+    
     //console.log("visualGroundR = ", Math.pow(z, 2));
 
     //坐标转换
@@ -71,47 +76,35 @@ function getVisualBuilding(circlePoly, buildings) {
     var total = 0;
     var visualBuilding = [];
     var idSelected = [];
-    var exceptBuildingsPoly = circlePoly;
-
+    //var exceptBuildingsPoly = circlePoly;
+    
+    var start = new Date().getTime();
     //统计有多少个多边形相交
-    turf.geomEach(buildings, function(currentGeometry, featureIndex, featureProperties) {
+    turf.geomEach(buildings, function(currentGeometry,featureIndex,  featureProperties) {
         if (turf.booleanOverlap(circlePoly, currentGeometry) || turf.booleanWithin(currentGeometry, circlePoly)) { //如果包含或者相交
 
             total++; //统计个数
             currentGeometry.properties = featureProperties; //特性移植
             //console.log(currentGeometry);
 
-            //将面积连接
-
-            var buildingShape = turf.difference(circlePoly, currentGeometry);
-            try {
-                exceptBuildingsPoly = turf.intersect(exceptBuildingsPoly, buildingShape);
-            } catch (e) {
-                //console.log(e);
-            }
-            //console.log(buildingsUnion);
-
             visualBuilding.push(currentGeometry); //记录可视范围内的建筑
             idSelected.push(currentGeometry.properties.id); //记录可视范围内的建筑编号
-            //console.log(visualBuilding);
+            //console.log(currentGeometry,featureProperties);
             //var line = turf.polygonToLine(currentGeometry); //
-
         };
     });
+    var end = new Date().getTime();
+    console.log('cost is', `${end - start}ms`);
 
 
     var multiBuildPoly = turf.multiPolygon(visualBuilding); //多个多边形
-    //console.log("idSelected = ", idSelected);
-    //console.log("multiPoly = ", multiBuildPoly);
-    //console.log("total = ", total);
-    //console.log(buildingsUnion);
 
     var visualBuildings = {
         "multiBuildPoly": multiBuildPoly, //事业内的建筑
         "idSelected": idSelected, //视野内的建筑ID
-        'exceptBuildingsPoly': exceptBuildingsPoly
+        //'exceptBuildingsPoly': exceptBuildingsPoly
     };
-
+    
     return visualBuildings;
 }
 
