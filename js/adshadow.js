@@ -142,6 +142,8 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
         //console.log(buildingHeight);
         var edgeNumber = currentBuilding.coordinates[0].length; //棱的个数
 
+        buildingShadow.push(turf.polygon(currentBuilding.coordinates))
+
         if (adHeight > (buildingHeight + 3)) { //如果广告牌高度更高
 
             turf.coordEach(currentBuilding, function(currentCoord, coordIndex) { //每条边
@@ -190,14 +192,14 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
                 var nextAngle = turf.bearingToAzimuth(turf.bearing(adCoord, nextCoord));
 
                 if (currentAngle != nextAngle) {
-                    if(Math.abs(currentAngle - nextAngle)>180){
+                    if (Math.abs(currentAngle - nextAngle) > 180) {
                         var arc = turf.lineArc(adCoord, visualGroundR * 2, Math.max(currentAngle, nextAngle),
-                        Math.min(nextAngle, currentAngle)).geometry.coordinates;
-                    }else{
+                            Math.min(nextAngle, currentAngle)).geometry.coordinates;
+                    } else {
                         var arc = turf.lineArc(adCoord, visualGroundR * 2, Math.min(currentAngle, nextAngle),
-                        Math.max(nextAngle, currentAngle)).geometry.coordinates;
+                            Math.max(nextAngle, currentAngle)).geometry.coordinates;
                     }
-                    
+
                     //console.log(nextCooord,currentCoord)
                     arc.push(nextCoord);
                     arc.unshift(currentCoord);
