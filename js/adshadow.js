@@ -89,7 +89,6 @@ function getVisualBuilding(circlePoly, buildings) {
             } catch (e) {
                 //console.log(e);
             }
-
             //console.log(buildingsUnion);
 
             visualBuilding.push(currentGeometry); //记录可视范围内的建筑
@@ -122,7 +121,7 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
     //对边界遍历获取阴影部分
     var adHeight = visualArea.visualHeight * 1000; //可视区域高度
     var adCoord = visualArea.brandCenterPoint; //广告牌的位置
-    var visualCoord = visualArea.visualCenter.geometry.coordinates; //可视范围的中心点
+    //var visualCoord = visualArea.visualCenter.geometry.coordinates; //可视范围的中心点
     var visualGroundR = visualArea.visualGroundR; //可视区半径
 
     //console.log("visualArea", adCoord);
@@ -131,16 +130,6 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
     var buildNumber = multiBuildPoly.geometry.coordinates.length; //建筑物个数
 
     //console.log("multiBuildPoly = ", multiBuildPoly)
-
-    //外包矩形
-
-    var bbox = turf.bbox(circlePoly); //
-    var circleR = Math.max(bbox[2] - bbox[0], bbox[3] - bbox[1]);
-
-    //circleR *= 100;
-    //console.log("circleR = ", circleR);
-
-    var union = visualBuildings.exceptBuildingsPoly;
 
     var buildingShadow = [];
 
@@ -197,16 +186,18 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
                     nextCoord = currentBuilding.coordinates[0][coordIndex + 1];
                 }
 
-                var currentAngle = (turf.bearing(adCoord, currentCoord)); //turf.bearingToAzimuth
-                var nextAngle = (turf.bearing(adCoord, nextCoord));
-                //console.log("currentAngle,nextAngle", turf.bearing(adCoord, currentCoord), turf.bearing(adCoord, nextCoord),
-                //   Math.min(currentAngle, nextAngle), Math.max(nextAngle, currentAngle));
+                var currentAngle = turf.bearingToAzimuth(turf.bearing(adCoord, currentCoord)); //turf.bearingToAzimuth
+                var nextAngle = turf.bearingToAzimuth(turf.bearing(adCoord, nextCoord));
 
                 if (currentAngle != nextAngle) {
-
-                    var arc = turf.lineArc(adCoord, visualGroundR * 2, turf.bearingToAzimuth(Math.min(currentAngle, nextAngle)),
-                        turf.bearingToAzimuth(Math.max(nextAngle, currentAngle))).geometry.coordinates;
-
+                    if(Math.abs(currentAngle - nextAngle)>180){
+                        var arc = turf.lineArc(adCoord, visualGroundR * 2, Math.max(currentAngle, nextAngle),
+                        Math.min(nextAngle, currentAngle)).geometry.coordinates;
+                    }else{
+                        var arc = turf.lineArc(adCoord, visualGroundR * 2, Math.min(currentAngle, nextAngle),
+                        Math.max(nextAngle, currentAngle)).geometry.coordinates;
+                    }
+                    
                     //console.log(nextCooord,currentCoord)
                     arc.push(nextCoord);
                     arc.unshift(currentCoord);
@@ -230,7 +221,6 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
     const visualAreaShadow = {
         'buildingShadow': buildingShadow,
         //'visualPoly': visualPoly
-
     }
     return (visualAreaShadow);
 } //function
