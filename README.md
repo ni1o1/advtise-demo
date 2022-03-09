@@ -2,7 +2,7 @@
 
 # 问题描述
 
-在三维城市中选定一个地方放置广告牌，考虑建筑遮挡的情况下，如何计算其可视范围？
+在三维城市中选定一个地方放置广告牌，考虑建筑遮挡的情况下，如何计算其可视范围？Demo：[https://ni1o1.github.io/advtise-demo/](https://ni1o1.github.io/advtise-demo/)
 
 # 效果
 
