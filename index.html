@@ -56,9 +56,9 @@
             ]);
 
             //广告高度
-            const adBottom = 500
-            const adTop = 600
-            const anglePN =false; //广告牌角度
+            const adBottom = 100
+            const adTop = 20
+            const anglePN = false; //广告牌角度
 
             //广告牌中心点
             var adPos1 = turf.coordAll(adPosition)[0];
@@ -86,7 +86,7 @@
             var visualArea = calVisualArea(midHorizontalMerPoint[0], midVerticalPoint, positionAngle,
                 xResolution = 0.01, isAngle = true, eyeResolution = 3); //
             var circlePoly = getCirclePosition(visualArea); //绘制影响圆形范围
-            
+
 
             //减去建筑阴影范围
             var visualBuildings = getVisualBuilding(circlePoly, building); //计算可视范围内的建筑
@@ -97,9 +97,9 @@
             console.log('cost is', `${end - start}ms`);
 
             var visualAreaShadow = calBuildingsShadow(circlePoly, visualBuildings, visualArea); //计算建筑阴影
-            
+
             var buildingShadow = visualAreaShadow.buildingShadow;
-            
+
 
             var visualPoly = calvisibleArea(circlePoly, buildingShadow);
 
@@ -220,7 +220,9 @@
                 });
 
 
-                map.setFilter('buildings-highlighted', ['in', ['get', 'id'],['literal', idSelected]]);
+                map.setFilter('buildings-highlighted', ['in', ['get', 'id'],
+                    ['literal', idSelected]
+                ]);
             });
 
         })
