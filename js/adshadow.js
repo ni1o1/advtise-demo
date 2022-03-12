@@ -21,12 +21,12 @@ function calVisualArea(brandCenterPoint, z, positionAngle, xResolution = 0.01, i
     var D = xResolution / eyeResolution;
     //半径
     var visualR = D / 2;
-    if(visualR>z){
+    if (visualR > z) {
         var visualGroundR = Math.sqrt((Math.pow(D, 2)) / 4 - (Math.pow(z, 2))); //地面上的可视化半径
-    }else{
+    } else {
         var visualGroundR = 0;
     }
-    
+
     //console.log("visualGroundR = ", Math.pow(z, 2));
 
     //坐标转换
@@ -42,13 +42,13 @@ function calVisualArea(brandCenterPoint, z, positionAngle, xResolution = 0.01, i
 
 
     var visualArea = {
-            'brandCenterPoint': brandCenterPoint,
-            'visualR': visualR,
-            'visualGroundR': visualGroundR,
-            'visualCenter': visualCenter,
-            'visualHeight': visualHeight
-        }
-        //console.log("visualArea = ", visualArea);
+        'brandCenterPoint': brandCenterPoint,
+        'visualR': visualR,
+        'visualGroundR': visualGroundR,
+        'visualCenter': visualCenter,
+        'visualHeight': visualHeight
+    }
+    //console.log("visualArea = ", visualArea);
     return visualArea;
 }
 
@@ -77,10 +77,10 @@ function getVisualBuilding(circlePoly, buildings) {
     var visualBuilding = [];
     var idSelected = [];
     //var exceptBuildingsPoly = circlePoly;
-    
+
     var start = new Date().getTime();
     //统计有多少个多边形相交
-    turf.geomEach(buildings, function(currentGeometry,featureIndex,  featureProperties) {
+    turf.geomEach(buildings, function (currentGeometry, featureIndex, featureProperties) {
         if (turf.booleanOverlap(circlePoly, currentGeometry) || turf.booleanWithin(currentGeometry, circlePoly)) { //如果包含或者相交
             var start = new Date().getTime();
             total++; //统计个数
@@ -95,7 +95,7 @@ function getVisualBuilding(circlePoly, buildings) {
             //var line = turf.polygonToLine(currentGeometry); //
         };
     });
-   
+
 
 
     var multiBuildPoly = turf.multiPolygon(visualBuilding); //多个多边形
@@ -105,7 +105,7 @@ function getVisualBuilding(circlePoly, buildings) {
         "idSelected": idSelected, //视野内的建筑ID
         //'exceptBuildingsPoly': exceptBuildingsPoly
     };
-    
+
     return visualBuildings;
 }
 
@@ -140,11 +140,11 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
 
         if (adHeight > (buildingHeight + 3)) { //如果广告牌高度更高
 
-            turf.coordEach(currentBuilding, function(currentCoord, coordIndex) { //每条边
+            turf.coordEach(currentBuilding, function (currentCoord, coordIndex) { //每条边
                 //获取对应的点
                 //console.log(currentCoord, coordIndex);//当前点
                 let nextCoord
-                    //给定下一个点的编号
+                //给定下一个点的编号
                 if (coordIndex == edgeNumber - 1) {
                     nextCoord = currentBuilding.coordinates[0][0];
                     //console.log(nextCoord);
@@ -173,13 +173,13 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
 
         } else {
             //如果高度低于建筑
-            console.log(turf.difference(circlePoly,circlePoly));
-            if(turf. booleanWithin(turf.point(adCoord),currentBuilding)){
-                buildingShadow = circlePoly;
+            if (turf.booleanWithin(turf.point(adCoord), currentBuilding)) {
+                buildingShadow.length = 0;
+                buildingShadow.push(circlePoly);
                 break;
             }
 
-            turf.coordEach(currentBuilding, function(currentCoord, coordIndex) { //每条边
+            turf.coordEach(currentBuilding, function (currentCoord, coordIndex) { //每条边
                 //给定下一个点的编号
                 let nextCoord
                 if (coordIndex == edgeNumber - 1) {
@@ -220,6 +220,7 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
     } //for building
 
     var buildingShadow = turf.featureCollection(buildingShadow);
+    //console.log(buildingShadow);
 
     const visualAreaShadow = {
         'buildingShadow': buildingShadow,
@@ -233,17 +234,12 @@ function calvisibleArea(circlePoly, buildingShadow) {
     var polygonDiff;
     var union = circlePoly;
     //统计建筑物地面形状
-    turf.geomEach(buildingShadow, function(currentGeometry, featureIndex) {
-
-        //console.log(currentGeometry, featureIndex);
-        if(currentGeometry == circlePoly){
-            polygonDiff = circlePoly;
-        }else{
-            polygonDiff = turf.difference(circlePoly, currentGeometry); //计算差异
-        }
+    turf.geomEach(buildingShadow, function (currentGeometry, featureIndex) {
+        polygonDiff = turf.difference(circlePoly, currentGeometry); //计算差异
         
-        if (polygonDiff != null && union != null) {
-            //console.log(union);
+        if (polygonDiff == null) {
+            union = null;
+        }else if (union != null) {
             try {
                 union = turf.intersect(polygonDiff, union);
             } catch (e) {
@@ -251,6 +247,6 @@ function calvisibleArea(circlePoly, buildingShadow) {
             }
         }
     });
-    //console.log(union);
+
     return union;
 }
