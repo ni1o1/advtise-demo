@@ -172,6 +172,13 @@ function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
             });
 
         } else {
+            //如果高度低于建筑
+            console.log(turf.difference(circlePoly,circlePoly));
+            if(turf. booleanWithin(turf.point(adCoord),currentBuilding)){
+                buildingShadow = circlePoly;
+                break;
+            }
+
             turf.coordEach(currentBuilding, function(currentCoord, coordIndex) { //每条边
                 //给定下一个点的编号
                 let nextCoord
@@ -229,7 +236,12 @@ function calvisibleArea(circlePoly, buildingShadow) {
     turf.geomEach(buildingShadow, function(currentGeometry, featureIndex) {
 
         //console.log(currentGeometry, featureIndex);
-        polygonDiff = turf.difference(circlePoly, currentGeometry); //计算差异
+        if(currentGeometry == circlePoly){
+            polygonDiff = circlePoly;
+        }else{
+            polygonDiff = turf.difference(circlePoly, currentGeometry); //计算差异
+        }
+        
         if (polygonDiff != null && union != null) {
             //console.log(union);
             try {
