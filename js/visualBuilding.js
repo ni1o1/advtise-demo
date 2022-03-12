@@ -71,7 +71,7 @@ function getCirclePosition(visualArea) {
     return circlePoly;
 }
 
-//获取可视建筑
+//获取可视范围内的建筑
 function getVisualBuilding(circlePoly, buildings) {
     var total = 0;
     var visualBuilding = [];
@@ -108,6 +108,13 @@ function getVisualBuilding(circlePoly, buildings) {
     
     return visualBuildings;
 }
+
+//获取可见建筑物
+function calVisibleBuilding(circlePoly, visualBuildings, visualArea){
+    
+}
+
+
 
 //计算阴影
 function calBuildingsShadow(circlePoly, visualBuildings, visualArea) {
