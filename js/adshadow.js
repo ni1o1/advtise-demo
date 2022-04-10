@@ -65,7 +65,7 @@ function getCirclePosition(visualArea) {
     //console.log(circleLine,"circlePoly = ",circlePoly);
 
     //生成圆弧面sector 
-    var circlePoly = turf.circle(visualArea.visualCenter, visualArea.visualGroundR, options);
+    var circlePoly = turf.circle(visualArea.visualCenter, visualArea.visualR, options);
     //console.log("circlePoly = ", circlePoly);
 
     return circlePoly;
