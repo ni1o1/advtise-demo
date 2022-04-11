@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Demo</title>
+
+    <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.js"></script>
+    <script src="http://www.yanhuangxueyuan.com/3D/example/three.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/jscastro76/threebox@v.2.2.2/dist/threebox.min.js"
+        type="text/javascript"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+    <script>
+
+    </script>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script type="text/javascript" src="js/bdVisualArea.js"></script>
+    <script type="text/javascript">
+
+        //读取建筑数据demo
+        $.getJSON('data/bd_demo.json', function (building) {
+
+            //console.log(building);//.features[0].properties.id
+            var option = { mutate: true };
+
+            /*-----算法输入:广告基本信息------*/
+            const observerPosition = turf.point(
+                //[139.71385194131568, 35.54231803134697],
+                //[139.70793695164346, 35.54611545979102]
+                //[139.704288, 35.555154],
+                //[139.704328, 35.555129]
+                //[139.717614, 35.553122],
+                //[139.704451, 35.563471]
+                [139.7089289928733, 35.5430972230505]
+                //[120.359357, 31.285211]
+                //[139.70945702322376, 35.54310211250271]
+                //[139.703894, 35.542902],
+                //[139.703527, 35.545208]
+
+            );
+
+            //高度
+            var observerHeight = 1.6;
+            var observedR = 300;
+
+            anglePN = true; //广告牌角度
+
+            //观察者
+            midHorizontalMer = turf.toMercator(observerPosition);   //墨卡托投影中心点
+            midHorizontalMerPoint = turf.coordAll(midHorizontalMer)[0];    //提取中心点
+            //console.log(midHorizontalMerPoint);
+
+
+            /*-----算法:广告影响范围计算----*/
+            //初始范围
+            var observedArea = calObservedArea(midHorizontalMerPoint, observerHeight, observedR);     //
+            var circlePoly = getCirclePosition(observedArea); //绘制影响圆形范围
+
+
+            //减去建筑阴影范围
+            var visualBuildings = getVisualBuilding(circlePoly, building);  //计算可视范围内的建筑
+            var idSelected = visualBuildings.idSelected;
+            //var exceptBuildingsPoly = visualBuildings.exceptBuildingsPoly;
+
+            var shapesGroup = calVisibleBuilding(visualBuildings, observedArea);//circlePoly
+            calShelterBuilding(shapesGroup, observedArea);//计算建筑物的投影
+            //console.log(shapesGroup);
+            visualShapeM = calShapesShadow(shapesGroup);   //计算每个面的面积
+            //console.log(visualShapeM);  //输出最后的可视区域
+
+            SecondaryScreening(visualShapeM);   //对可视面进行二次筛选
+            console.log(visualShapeM);
+
+
+
+            /*-----地图可视化配置------*/
+            //地图配置
+            mapboxglToken = "pk.eyJ1IjoibmkxbzEiLCJhIjoiY2t3ZDgzMmR5NDF4czJ1cm84Z3NqOGt3OSJ9.yOYP6pxDzXzhbHfyk3uORg"
+            mapboxgl.accessToken = mapboxglToken
+            var map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/dark-v10',
+                center: [139.69980, 35.53280],
+                zoom: 16,
+                pitch: 60,
+                bearing: 20,
+                antialias: false
+            });
+
+
+            map.on('load', () => {
+                
+                //展示初始的可视区域
+                map.addSource('area', {
+                    'type': 'geojson',
+                    'data': circlePoly
+                })
+                map.addLayer({
+                    'id': 'area',
+                    'source': 'area',
+                    'type': 'fill',
+                    'paint': {
+                        'fill-color': 'yellow',
+                    }
+                });
+                
+                //观测点
+                map.addSource('observerPosition', {
+                    'type': 'geojson',
+                    'data': observerPosition
+                })
+                /*
+                map.addLayer({
+                    'id': 'observerPosition',
+                    'source': 'observerPosition',
+                    'type': 'symbol',
+                    'layout': {
+                        'icon-image': 'custom-marker',
+                    },
+                    'paint': {
+                        'symbol-color': 'blue',
+                    }
+                });
+                */
+                map.addLayer({
+                    'id': 'observerPosition',
+                    'type': 'circle',
+                    'source': 'observerPosition',
+                    //'source-layer': 'sf2010',
+                    'paint': {
+                        // Make circles larger as the user zooms from z12 to z22.
+                        'circle-radius': {
+                            'base': 1.75,
+                            'stops': [
+                                [12, 2],
+                                [22, 180]
+                            ]
+                        },
+                        // Color circles by ethnicity, using a `match` expression.
+                        'circle-color': 'green',
+                    }
+                });
+                /*
+                //展示最后的初始的可视区域
+                map.addSource('visualPoly', {
+                    'type': 'geojson',
+                    'data': visualPoly
+                })
+                map.addLayer({
+                    'id': 'visualPoly',
+                    'source': 'visualPoly',
+                    'type': 'fill',
+                    'paint': {
+                        'fill-color': 'blue',
+                    }
+                });
+                
+                //展示广告位置
+                map.addSource('AD', {
+                    'type': 'geojson',
+                    'data': adPosition
+                })
+                map.addLayer({
+                    'id': 'AD',
+                    'source': 'AD',
+                    'type': 'line',
+                    'paint': {
+                        'line-color': 'green',
+                        'line-width': 8
+                    }
+                });
+     
+                //展示阴影
+                map.addSource('buildingsShadow', {
+                    'type': 'geojson',
+                    'data': buildingShadow
+                })
+                map.addLayer({
+                    'id': 'buildingsShadow',
+                    'source': 'buildingsShadow',
+                    'type': 'fill',
+                    //'source-layer': 'original',
+                    'layout': {},
+                    'paint': {
+                        'fill-color': 'black',
+                        'fill-opacity': 0.2,
+                    },
+                });
+                */
+                //展示建筑
+                map.addSource('building', {
+                    'type': 'geojson',
+                    'data': building
+                })
+                map.addLayer({
+                    'id': '3d-buildings',
+                    'source': 'building',
+                    'type': 'fill-extrusion',
+                    //'source-layer': 'original',
+                    'paint': {
+                        'fill-extrusion-color': '#ddd',
+                        'fill-extrusion-base': 0,
+                        'fill-extrusion-height': ['get', 'height'],
+                        'fill-extrusion-opacity': 1,
+                    },
+                });
+
+
+                //高亮显示的建筑物
+                map.addLayer({
+                    'id': 'buildings-highlighted',
+                    'type': 'fill-extrusion',
+                    'source': 'building',
+                    //'source-layer': 'original',
+                    'paint': {
+                        'fill-extrusion-color': 'red',
+                        'fill-extrusion-base': 0,
+                        'fill-extrusion-height': ['get', 'height'],
+                        'fill-extrusion-opacity': 1,
+                    },
+                    // Display none by adding a
+                    // filter with an empty string.
+                    'filter': ['in', ['get', 'id'], ''],
+                });
+
+                //map.addLayer(customLayer, 'waterway-label');
+                map.setFilter('buildings-highlighted', ['in', ['get', 'id'], ['literal', idSelected]]);
+            });
+
+        })
+    </script>
+</body>
+
+</html>

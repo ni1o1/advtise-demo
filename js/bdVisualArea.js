@@ -431,9 +431,9 @@ function calShapesShadow(shapesGroup) {
         //console.log(currentShape2D);
         currentShape2D = turf.polygon([currentShape2D]);
 
-        if (shapesGroup[i].shelterShape.length == 0) {
-            console.log("buduijin");
-        }
+        //if (shapesGroup[i].shelterShape.length == 0) {
+        //    console.log("buduijin");
+        //}
         //对每一个阴影进行遍历
         for (var j = 0; j < shapesGroup[i].shelterShape.length; j++) {
 
