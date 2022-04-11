@@ -48,7 +48,7 @@ function getCirclePosition(observedArea) {
 
 //获取可视范围内的建筑
 function getVisualBuilding(circlePoly, buildings) {
-    var total = 0;
+    //var total = 0;
     var visualBuilding = [];
     var idSelected = [];
     //var exceptBuildingsPoly = circlePoly;
@@ -58,7 +58,7 @@ function getVisualBuilding(circlePoly, buildings) {
     turf.geomEach(buildings, function (currentGeometry, featureIndex, featureProperties) {
         if (turf.booleanOverlap(circlePoly, currentGeometry) || turf.booleanWithin(currentGeometry, circlePoly)) { //如果包含或者相交
 
-            total++; //统计个数
+            //total++; //统计个数
             currentGeometry.properties = featureProperties; //特性移植
             //console.log(currentGeometry);
 
@@ -113,7 +113,7 @@ buildingsShapes.prototype = {
 }
 
 //计算可视范围内的建筑物投影
-function calVisibleBuilding(circlePoly, visualBuildings, observedArea) {
+function calVisibleBuilding(visualBuildings, observedArea) {//circlePoly, 
     var buildings = visualBuildings.multiBuildPoly.geometry.coordinates;
     var observerCenter = observedArea.observerCenter;
     var shapesGroup = [];
@@ -134,7 +134,7 @@ function calVisibleBuilding(circlePoly, visualBuildings, observedArea) {
             var currentAngle = turf.bearingToAzimuth(turf.bearing(observerCenter, currentCoord));
             var nextAngle = turf.bearingToAzimuth(turf.bearing(observerCenter, nextCoord));
             //console.log(turf.toMercator(observerCenter));
-            var a = turf.toMercator(observerCenter);
+            //var a = turf.toMercator(observerCenter);
 
 
             var point1 = turf.toMercator(Array.from(currentCoord)); var point2 = turf.toMercator(Array.from(nextCoord));
@@ -344,6 +344,7 @@ function lineDotMultiply2(l1, l2, option = "lineSegment") {
 //从总坐标转换为以建筑物为底面的坐标
 function coordSystemConversion3To2(origin, currentShape) {
     /*参数：原点，需要转换的面*/
+
     var shape2D = [];
     for (var i = 0; i < currentShape.length - 1; i++) {
         var currentPoint = currentShape[i];
@@ -363,15 +364,48 @@ function coordSystemConversion3To2(origin, currentShape) {
 //从以建筑物为底面的坐标转换为总坐标
 function coordSystemConversion2To3(origin, coordSystem, shape2D) {
 
-    var lon = origin[0] + coordSystem[0] * (shape2D[0] / coordSystem[2]);
-    var lat = origin[1] + coordSystem[1] * (shape2D[0] / coordSystem[2]);
-    //console.log("shape2D[0]/coordSystem[2]", shape2D[0] / coordSystem[2]);
-    return [lon, lat, shape2D[1]];
+    coord = turf.getCoords(shape2D);
+    //console.log(coord);
+    coordSet = [];
+    //for(var j = 0; j < coord.length;j++){
+    if (coord.length == 1) {
+        var coordShape = [];
+        for (var i = 0; i < coord[0].length; i++) {
+            //console.log(coord[j]);
+            var currentShape = coord[0][i];
+            var x = origin[0] + coordSystem[0] * (currentShape[0] / coordSystem[2]);    //lon--x
+            var y = origin[1] + coordSystem[1] * (currentShape[0] / coordSystem[2]);     //lat--y
+            coordWgs = turf.getCoords(turf.toWgs84([x, y]));
+
+            coordWgs.push(currentShape[1]);
+            coordShape.push(coordWgs);
+        }
+        coordSet.push(coordShape);
+        //console.log(coordSet);
+        return coordSet;
+    } else {
+        for (var j = 0; j < coord.length; j++) {    //对每一个shape遍历
+            var coordShape = [];
+            for (var i = 0; i < coord[j][0].length; i++) {
+                //console.log(coord[j][0]);
+                var currentShape = coord[j][0][i];
+               
+                var x = origin[0] + coordSystem[0] * (currentShape[0] / coordSystem[2]);    //lon--x
+                var y = origin[1] + coordSystem[1] * (currentShape[0] / coordSystem[2]);     //lat--y
+                coordWgs = turf.getCoords(turf.toWgs84([x, y]));
+                //console.log(x,y,coordWgs);
+                coordWgs.push(currentShape[1]);
+                coordShape.push(coordWgs);
+            }
+            coordSet.push(coordShape);
+        }
+        return coordSet;
+    }
 }
 
 //turf方位角规则：纬度方向上的北方是0度，顺时针经度向东为90度
 function calShapesShadow(shapesGroup) {
-    console.log("未投影区域计算的",shapesGroup);
+    console.log("未投影区域计算的", shapesGroup);
     visualShapes = [];
     outer:
     for (var i = 0; i < shapesGroup.length; i++) {
@@ -389,7 +423,7 @@ function calShapesShadow(shapesGroup) {
         var secondCoord = currentShape[1];
         var length = Math.sqrt(((secondCoord[0] - firstCoord[0]) * (secondCoord[0] - firstCoord[0]) +
             (secondCoord[1] - firstCoord[1]) * (secondCoord[1] - firstCoord[1])), 2);
-        //console.log(length);
+       
         var coordSystem = [secondCoord[0] - firstCoord[0], secondCoord[1] - firstCoord[1], length]; //坐标轴系统参数
         //console.log(coordSystem);
 
@@ -418,45 +452,48 @@ function calShapesShadow(shapesGroup) {
                 continue outer;
             }
         }
-        //对坐标进行还原
-        currentShape2DCoord = turf.coordAll(currentShape2D);
-        visualShapeM = [];
-        for (k = 0; k < currentShape2DCoord.length; k++) {
-            visualShapeM.push(coordSystemConversion2To3(coordSystemOrigin, coordSystem, currentShape2DCoord[k]));
-        }
-        visualShapes.push(visualShapeM);
+        visualShapes.push(coordSystemConversion2To3(coordSystemOrigin, coordSystem, currentShape2D));
     }
     //console.log(visualShapes);
     return visualShapes;
 }
 
 function SecondaryScreening(visualShapes) {
-    var x = 0;
-    for (var i = 0; i < visualShapes.length; i++) {
-        var currentShape = visualShapes[i];
-        //console.log(currentShape);
-        firstPoint = currentShape[0];
-        var maxLon = 0, minLon = firstPoint[0];
-        var maxLat = 0, minLat = firstPoint[1];
-        var maxHeight = 0,minHeight = firstPoint[2];
-        for (var j = 0; j < currentShape.length; j++) {
-            var currentPoint = currentShape[j];
-            if (maxLon < currentPoint[0]) maxLon = currentPoint[0];
-            if (minLon > currentPoint[0]) minLon = currentPoint[0];
-            if (maxLat < currentPoint[1]) maxLat = currentPoint[1];
-            if (minLat > currentPoint[1]) minLat = currentPoint[1];
-            if (maxHeight < currentPoint[2]) maxHeight = currentPoint[2];
-            if (minHeight > currentPoint[2]) minHeight = currentPoint[2];
-        }
-        //console.log(maxLon,minLon,maxLat,minLat,maxHeight,minHeight);
-        if(maxLon-minLon<0.1||maxLat-minLat<0.1||maxHeight-minHeight<0.1){
-            //console.log(x++);
+    outer:
+    for (var k = 0; k < visualShapes.length; k++) {
+        var currentBuilding = visualShapes[k];
+        //console.log(currentBuilding,currentBuilding.length);
+
+        for (var i = 0; i < currentBuilding.length; i++) {
+            var currentShape = currentBuilding[i];
             //console.log(currentShape);
-            visualShapes.splice(i,1);
-            i--;
+
+            firstPoint = currentShape[0];
+            //console.log(firstPoint,currentShape.length);
+
+            var maxLon = 0, minLon = firstPoint[0];
+            var maxLat = 0, minLat = firstPoint[1];
+            var maxHeight = 0, minHeight = firstPoint[2];
+            for (var j = 0; j < currentShape.length; j++) {
+                var currentPoint = currentShape[j];
+                if (maxLon < currentPoint[0]) maxLon = currentPoint[0];
+                if (minLon > currentPoint[0]) minLon = currentPoint[0];
+                if (maxLat < currentPoint[1]) maxLat = currentPoint[1];
+                if (minLat > currentPoint[1]) minLat = currentPoint[1];
+                if (maxHeight < currentPoint[2]) maxHeight = currentPoint[2];
+                if (minHeight > currentPoint[2]) minHeight = currentPoint[2];
+            }
+            //console.log(maxLon,minLon,maxLat,minLat,maxHeight,minHeight);
+            if (maxLon - minLon < 0.000001 || maxLat - minLat < 0.000001 || maxHeight - minHeight < 0.01) {
+                currentBuilding.splice(i, 1);
+                i--;
+
+                if (currentBuilding.length == 0) {
+                    visualShapes.splice(k, 1);
+                    k--;
+                    continue outer;
+                }
+            }
         }
-
     }
-
-
 }
