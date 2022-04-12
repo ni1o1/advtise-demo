@@ -47,9 +47,9 @@
                 //[139.70793695164346, 35.54611545979102]
                 //[139.704288, 35.555154],
                 //[139.704328, 35.555129]
-                //[139.717614, 35.553122],
-                //[139.704451, 35.563471]
-                [139.7089289928733, 35.5430972230505]
+                [139.717614, 35.553122],
+                //[139.704451, 35.563471]//tihs
+                //[139.7089289928733, 35.5430972230505]
                 //[120.359357, 31.285211]
                 //[139.70945702322376, 35.54310211250271]
                 //[139.703894, 35.542902],
@@ -85,8 +85,9 @@
             //console.log(shapesGroup);
             visualShapeM = calShapesShadow(shapesGroup); //计算每个面的面积
             //console.log(visualShapeM);  //输出最后的可视区域
-
-            SecondaryScreening(visualShapeM); //对可视面进行二次筛选
+            
+            secondaryScreening(visualShapeM); //对可视面进行二次筛选
+            console.log(visualShapeM);
             const visualShapeM_json = {
                 type: 'FeatureCollection',
                 features: visualShapeM.map(f => {
@@ -107,7 +108,7 @@
                     }
                 })
             }
-
+            
 
             /*-----地图可视化配置------*/
             //地图配置
@@ -127,6 +128,7 @@
             map.on('load', () => {
 
                 //展示初始的可视区域
+                /*
                 map.addSource('area', {
                     'type': 'geojson',
                     'data': circlePoly
@@ -139,6 +141,7 @@
                         'fill-color': 'yellow',
                     }
                 });
+                */
 
                 //观测点
                 map.addSource('observerPosition', {
@@ -205,41 +208,9 @@
                         'line-width': 8
                     }
                 });
-     
-                //展示阴影
-                map.addSource('buildingsShadow', {
-                    'type': 'geojson',
-                    'data': buildingShadow
-                })
-                map.addLayer({
-                    'id': 'buildingsShadow',
-                    'source': 'buildingsShadow',
-                    'type': 'fill',
-                    //'source-layer': 'original',
-                    'layout': {},
-                    'paint': {
-                        'fill-color': 'black',
-                        'fill-opacity': 0.2,
-                    },
-                });
                 */
-                //展示建筑
-                map.addSource('building', {
-                    'type': 'geojson',
-                    'data': building
-                })
-                map.addLayer({
-                    'id': '3d-buildings',
-                    'source': 'building',
-                    'type': 'fill-extrusion',
-                    //'source-layer': 'original',
-                    'paint': {
-                        'fill-extrusion-color': '#ddd',
-                        'fill-extrusion-base': 0,
-                        'fill-extrusion-height': ['get', 'height'],
-                        'fill-extrusion-opacity': 0.5,
-                    },
-                });
+                
+                
                 //建筑可视区域
                 map.addSource('visualShapeM', {
                     'type': 'geojson',
@@ -268,7 +239,26 @@
                         'fill-extrusion-opacity': 1
                     }
                 });
-
+                //展示建筑
+                
+                map.addSource('building', {
+                    'type': 'geojson',
+                    'data': building
+                })
+                map.addLayer({
+                    'id': '3d-buildings',
+                    'source': 'building',
+                    'type': 'fill-extrusion',
+                    //'source-layer': 'original',
+                    'paint': {
+                        'fill-extrusion-color': '#ddd',
+                        'fill-extrusion-base': 0,
+                        'fill-extrusion-height': ['get', 'height'],
+                        'fill-extrusion-opacity': 0.1,
+                    },
+                });   /* */
+                
+                
                 //高亮显示的建筑物
                 map.addLayer({
                     'id': 'buildings-highlighted',
