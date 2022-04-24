@@ -541,3 +541,45 @@ function secondaryScreening(visualShapes) {
         }
     }
 }
+const calbdVisualArea = (observerPosition, building, observerHeight = 1.6, observedR = 300) => {
+
+    //观察者
+    const midHorizontalMer = turf.toMercator(observerPosition); //墨卡托投影中心点
+    const midHorizontalMerPoint = turf.coordAll(midHorizontalMer)[0]; //提取中心点
+    /*-----算法:广告影响范围计算----*/
+    //初始范围
+    const observedArea = calObservedArea(midHorizontalMerPoint, observerHeight, observedR); //
+    const circlePoly = getCirclePosition(observedArea); //绘制影响圆形范围
+    //减去建筑阴影范围
+    const visualBuildings = getVisualBuilding(circlePoly, building); //计算可视范围内的建筑
+    const idSelected = visualBuildings.idSelected;
+    const shapesGroup = calVisibleBuilding(visualBuildings, observedArea); //circlePoly
+    calShelterBuilding(shapesGroup, observedArea); //计算建筑物的投影
+    const visualShapeM = calShapesShadow(shapesGroup); //计算每个面的面积
+    secondaryScreening(visualShapeM); //对可视面进行二次筛选
+    console.log(visualShapeM);
+    const visualShapeM_json = {
+        type: 'FeatureCollection',
+        features: visualShapeM.map(f => {
+            return {
+                geometry: {
+                    coordinates: f.map(a => a.map(b => [b[0] + 0.0000001 * b[2], b[1] + 0.0000001 * b[2], b[2]])),
+                    type: 'Polygon'
+                },
+                properties: {
+                    min_height: f[0].reduce((prev, cur) => {
+                        return prev[2] > cur[2] ? cur : prev
+                    })[2], //最低高度
+                    height: f[0].reduce((prev, cur) => {
+                            return prev[2] > cur[2] ? prev : cur
+                        })[2] //最高高度
+                },
+                type: 'Feature'
+            }
+        })
+    }
+    return {
+        'visualShapeM_json': visualShapeM_json,
+        'idSelected': idSelected
+    }
+}

@@ -60,55 +60,11 @@
             //高度
             var observerHeight = 1.6;
             var observedR = 300;
+            const {
+                visualShapeM_json,
+                idSelected
+            } = calbdVisualArea(observerPosition, building, observerHeight = 1.6, observedR = 300)
 
-            anglePN = true; //广告牌角度
-
-            //观察者
-            midHorizontalMer = turf.toMercator(observerPosition); //墨卡托投影中心点
-            midHorizontalMerPoint = turf.coordAll(midHorizontalMer)[0]; //提取中心点
-            //console.log(midHorizontalMerPoint);
-
-
-            /*-----算法:广告影响范围计算----*/
-            //初始范围
-            var observedArea = calObservedArea(midHorizontalMerPoint, observerHeight, observedR); //
-            var circlePoly = getCirclePosition(observedArea); //绘制影响圆形范围
-
-
-            //减去建筑阴影范围
-            var visualBuildings = getVisualBuilding(circlePoly, building); //计算可视范围内的建筑
-            var idSelected = visualBuildings.idSelected;
-            //var exceptBuildingsPoly = visualBuildings.exceptBuildingsPoly;
-
-            var shapesGroup = calVisibleBuilding(visualBuildings, observedArea); //circlePoly
-            calShelterBuilding(shapesGroup, observedArea); //计算建筑物的投影
-            //console.log(shapesGroup);
-            visualShapeM = calShapesShadow(shapesGroup); //计算每个面的面积
-            //console.log(visualShapeM);  //输出最后的可视区域
-            
-            secondaryScreening(visualShapeM); //对可视面进行二次筛选
-            console.log(visualShapeM);
-            const visualShapeM_json = {
-                type: 'FeatureCollection',
-                features: visualShapeM.map(f => {
-                    return {
-                        geometry: {
-                            coordinates: f.map(a => a.map(b => [b[0] + 0.000001 * Math.random(), b[1] + 0.000001 * Math.random(), b[2]])),
-                            type: 'Polygon'
-                        },
-                        properties: {
-                            min_height: f[0].reduce((prev, cur) => {
-                                return prev[2] > cur[2] ? cur : prev
-                            })[2], //最低高度
-                            height: f[0].reduce((prev, cur) => {
-                                    return prev[2] > cur[2] ? prev : cur
-                                })[2] //最高高度
-                        },
-                        type: 'Feature'
-                    }
-                })
-            }
-            
 
             /*-----地图可视化配置------*/
             //地图配置
@@ -117,7 +73,7 @@
             var map = new mapboxgl.Map({
                 container: 'map',
                 style: 'mapbox://styles/mapbox/dark-v10',
-                center: [139.69980, 35.53280],
+                center: [139.717614, 35.553122],
                 zoom: 16,
                 pitch: 60,
                 bearing: 20,
@@ -209,8 +165,8 @@
                     }
                 });
                 */
-                
-                
+
+
                 //建筑可视区域
                 map.addSource('visualShapeM', {
                     'type': 'geojson',
@@ -240,7 +196,7 @@
                     }
                 });
                 //展示建筑
-                
+
                 map.addSource('building', {
                     'type': 'geojson',
                     'data': building
@@ -256,9 +212,9 @@
                         'fill-extrusion-height': ['get', 'height'],
                         'fill-extrusion-opacity': 0.1,
                     },
-                });   /* */
-                
-                
+                }); /* */
+
+
                 //高亮显示的建筑物
                 map.addLayer({
                     'id': 'buildings-highlighted',
