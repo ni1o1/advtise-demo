@@ -45,7 +45,7 @@ function getVisualBuilding(circlePoly, buildings) {
 
     //var start = new Date().getTime();
     //统计有多少个多边形相交
-    turf.geomEach(buildings, function(currentGeometry, featureIndex, featureProperties) {
+    turf.geomEach(buildings, function (currentGeometry, featureIndex, featureProperties) {
         if (turf.booleanOverlap(circlePoly, currentGeometry) || turf.booleanWithin(currentGeometry, circlePoly)) { //如果包含或者相交
 
             currentGeometry.properties = featureProperties; //特性移植
@@ -67,33 +67,36 @@ function getVisualBuilding(circlePoly, buildings) {
 }
 
 //构造函数
-const buildingsShapes = function(shape, height, angle, shelter, shelterShape) {
+const buildingsShapes = function (shape, height, angle, shelter, shelterShape, building) {
     this.shape = shape; //没有特定顺序
     this.height = height;
     this.angle = angle;
     this.shelter = shelter; //遮挡它的面
     this.shelterShape = shelterShape;
+    this.building = building;
 }
 buildingsShapes.prototype = {
-    maxDistance: function(point) {
+    maxDistance: function (point) {
         var maxDistance = Math.max(turf.distance(point, this.shape[0]), turf.distance(point, this.shape[1]));
         return maxDistance;
     },
-    minDistance: function(point) {
+    minDistance: function (point) {
         var minDistance = Math.min(turf.distance(point, this.shape[0]), turf.distance(point, this.shape[1]));
         return minDistance;
     },
-    length: function() {
+    length: function () {
         return turf.distance(this.shape[0], this.shape[1]);
     },
-    isShelter: function(bS, point) { //被这个面遮挡
+    isShelter: function (bS, point) { //被这个面遮挡
         //console.log(this.distance(point),bS.distance(point));
-        if ((bS.angle[0] < this.angle[1]) && (bS.angle[1] > this.angle[0]) && (this.maxDistance(point) > bS.minDistance(point))) {
+        if ((bS.angle[0] < this.angle[1] - 0.1) && (bS.angle[1] > this.angle[0] + 0.1)
+            && (this.maxDistance(point) > bS.minDistance(point))) {
             this.shelter.push(bS);
             return true;
         } else { return false; }
     },
 }
+
 
 //Step2:
 //获取建筑物的每个面的三维坐标集合
@@ -109,7 +112,12 @@ function calVisibleBuilding(visualBuildings, observedArea) { //circlePoly,
         var buildingHeight = currentBuilding.properties.height;
         var edgeNumber = currentBuilding.coordinates[0].length; //棱的个数
 
-        turf.coordEach(buildings[i], function(currentCoord, coordIndex) {
+        //倒带
+        currentBuilding = turf.rewind(currentBuilding);
+        //var minAngle = 0.0
+        //var maxAngle = 0.0
+
+        turf.coordEach(buildings[i], function (currentCoord, coordIndex) {
             let nextCoord
             if (coordIndex == edgeNumber - 1) {
                 nextCoord = currentBuilding.coordinates[0][0];
@@ -139,17 +147,24 @@ function calVisibleBuilding(visualBuildings, observedArea) { //circlePoly,
             //如果立面不在同一直线上：将建筑物面的四个顶点加入到集合中
             if (currentAngle != nextAngle) {
                 if (Math.abs(currentAngle - nextAngle) > 180) {
-                    var shape = new buildingsShapes(shape, buildingHeight, [Math.max(currentAngle, nextAngle),
+                    if (currentAngle < (nextAngle + 360) ) {
+                        var shape = new buildingsShapes(shape, buildingHeight, [Math.max(currentAngle, nextAngle),
                         Math.min(nextAngle, currentAngle) + 360
-                    ], [], []);
+                        ], [], [], currentBuilding);
+                        shapesGroup.push(shape);
+                    }
                     //console.log([Math.max(currentAngle, nextAngle),Math.min(nextAngle, currentAngle)+360])
                 } else {
-                    var shape = new buildingsShapes(shape, buildingHeight, [Math.min(currentAngle, nextAngle),
+                    if (currentAngle < nextAngle) {
+                        var shape = new buildingsShapes(shape, buildingHeight, [Math.min(currentAngle, nextAngle),
                         Math.max(nextAngle, currentAngle)
-                    ], [], []);
+                        ], [], [], currentBuilding);
+                        shapesGroup.push(shape);
+                    }
+
                     //console.log([Math.min(currentAngle, nextAngle),Math.max(nextAngle, currentAngle)])
                 }
-                shapesGroup.push(shape);
+
             }
         });
     }
@@ -253,8 +268,9 @@ function calSingleShelterShape(currentShape, shelterShape, centerPoint, observer
             }
         } else {
             //求高度 
-            if (nearCenter) {
-                var height = 10000;
+            if ((nearCenter)) {//||(currentShape.building == shelterShape.building)
+                //console.log("ads");
+                var height = 1000;
             } else {
                 var height = observerHeight + (shelterShape.height - observerHeight) /
                     turf.distance(shelterShape.shape[3 - i], centerPoint) * turf.distance(shape[3 - i], centerPoint);
@@ -275,40 +291,45 @@ function calSingleShelterShape(currentShape, shelterShape, centerPoint, observer
 
 //计算遮挡建筑物面的面积
 function calShelterBuilding(shapesGroup, observedArea) {
-    //console.log(shapesGroup);
+    console.log(shapesGroup);
     var observerHeight = observedArea.observerHeight
     var point = (observedArea.observerCenter); //turf.toMercator
     point.push(0);
+    var h = 0;
 
     outer:
-        for (var i = 0; i < shapesGroup.length; i++) {
-            //var angle = shapesGroup[i].angle;
-            var shapes = [];
+    for (var i = 0; i < shapesGroup.length; i++) {
+        //var angle = shapesGroup[i].angle;
+        var shapes = [];
 
-            //如果有遮挡面
-            for (var j = 0; j < shapesGroup.length; j++) {
-                if (i == j) continue;
-                if (shapesGroup[i].isShelter(shapesGroup[j], point)) {
-                    //var currentCoord12 = shapesGroup[i].shape[0], currentCoord22 = shapesGroup[i].shape[1];
+        //如果有遮挡面
+        for (var j = 0; j < shapesGroup.length; j++) {
+            if (i == j) continue;
+            if (shapesGroup[i].isShelter(shapesGroup[j], point)) {  //如果被遮挡
 
-                    //计算遮挡面投影到被遮挡面上得shape
-                    var [shape, minHeight] = calSingleShelterShape(shapesGroup[i], shapesGroup[j], point, observerHeight); //输入第一个需要计算阴影的面，第二是当前的投影面
-                    if (isNaN(shape)) {
-                        continue;
-                    }
-                    shapes.push(shape);
+                //var currentCoord12 = shapesGroup[i].shape[0], currentCoord22 = shapesGroup[i].shape[1];
 
-                    //加个判断条件，不符合条件的全部剔除,如果完全被影子笼罩则剔除
-                    if (shapesGroup[j].angle[0] <= shapesGroup[i].angle[0] && shapesGroup[j].angle[1] >= shapesGroup[i].angle[1]) { //&& shapesGroup[i].height < minHeight
-                        shapesGroup.splice(i, 1);
-                        i--;
-                        continue outer;
-                    }
+                //计算遮挡面投影到被遮挡面上得shape
+                var [shape, minHeight] = calSingleShelterShape(shapesGroup[i], shapesGroup[j], point, observerHeight); //输入第一个需要计算阴影的面，第二是当前的投影面
+                if (isNaN(shape)) {
+                    continue;
                 }
+                shapes.push(shape);
+
+                //加个判断条件，不符合条件的全部剔除,如果完全被影子笼罩则剔除
+                if ((shapesGroup[j].angle[0] <= shapesGroup[i].angle[0] && shapesGroup[j].angle[1] >= shapesGroup[i].angle[1])
+                    //||(shapesGroup[j].building == shapesGroup[i].building)
+                ) { //&& shapesGroup[i].height < minHeight
+                    shapesGroup.splice(i, 1);
+                    i--;
+                    continue outer;
+                }
+
             }
-            //console.log(shapes);
-            shapesGroup[i].shelterShape = shapes;
         }
+        //console.log(shapes);
+        shapesGroup[i].shelterShape = shapes;
+    }
 }
 
 //向量叉乘计算：输入两个线段，线段的方向决定向量的方向
@@ -425,54 +446,54 @@ function calShapesShadow(shapesGroup) {
     console.log("未投影区域计算的", shapesGroup);
     const visualShapes = [];
     outer:
-        for (var i = 0; i < shapesGroup.length; i++) {
-            //计算每个shelter对应
-            var currentShape = shapesGroup[i].shape;
-            //console.log(currentShape);
+    for (var i = 0; i < shapesGroup.length; i++) {
+        //计算每个shelter对应
+        var currentShape = shapesGroup[i].shape;
+        //console.log(currentShape);
 
-            var shadow = [];
-            var currentShadow;
-            shadow.push(Array.from(currentShape)); //对于每一个面都有一个非遮挡区域，初始值为shape
+        var shadow = [];
+        var currentShadow;
+        shadow.push(Array.from(currentShape)); //对于每一个面都有一个非遮挡区域，初始值为shape
 
-            //把每个面转换坐标系console.log(origin)
-            var coordSystemOrigin = currentShape[0]; //原点
-            //var coordSystemDirection = turf.bearingToAzimuth(turf.bearing(currentShape[0], currentShape[1]));    //坐标轴方向
-            var firstCoord = currentShape[0];
-            var secondCoord = currentShape[1];
-            var length = Math.sqrt(((secondCoord[0] - firstCoord[0]) * (secondCoord[0] - firstCoord[0]) +
-                (secondCoord[1] - firstCoord[1]) * (secondCoord[1] - firstCoord[1])), 2);
+        //把每个面转换坐标系console.log(origin)
+        var coordSystemOrigin = currentShape[0]; //原点
+        //var coordSystemDirection = turf.bearingToAzimuth(turf.bearing(currentShape[0], currentShape[1]));    //坐标轴方向
+        var firstCoord = currentShape[0];
+        var secondCoord = currentShape[1];
+        var length = Math.sqrt(((secondCoord[0] - firstCoord[0]) * (secondCoord[0] - firstCoord[0]) +
+            (secondCoord[1] - firstCoord[1]) * (secondCoord[1] - firstCoord[1])), 2);
 
-            var coordSystem = [secondCoord[0] - firstCoord[0], secondCoord[1] - firstCoord[1], length]; //坐标轴系统参数
-            //console.log(coordSystemOrigin,coordSystem);
+        var coordSystem = [secondCoord[0] - firstCoord[0], secondCoord[1] - firstCoord[1], length]; //坐标轴系统参数
+        //console.log(coordSystemOrigin,coordSystem);
 
-            var currentShape2D = coordSystemConversion3To2(coordSystemOrigin, secondCoord, currentShape); //被遮挡面坐标系转换
-            //console.log(currentShape2D);
+        var currentShape2D = coordSystemConversion3To2(coordSystemOrigin, secondCoord, currentShape); //被遮挡面坐标系转换
+        //console.log(currentShape2D);
 
-            currentShape2D = turf.polygon([currentShape2D]);
+        currentShape2D = turf.polygon([currentShape2D]);
 
-            //console.log(shapesGroup[i].shelterShape.length);
-            //对每一个阴影进行遍历
-            for (var j = 0; j < shapesGroup[i].shelterShape.length; j++) {
-                //console.log(shapesGroup[i]);
-                currentShadow = shapesGroup[i].shelterShape[j];
-                //console.log("aaaa",coordSystemOrigin,currentShadow,currentShape);
-                var currentShadow2D = coordSystemConversion3To2(coordSystemOrigin, secondCoord, currentShadow);
-                //console.log("currentShadow2D", currentShadow, currentShadow2D);
-                currentShadow2D = turf.polygon([currentShadow2D]);
+        //console.log(shapesGroup[i].shelterShape.length);
+        //对每一个阴影进行遍历
+        for (var j = 0; j < shapesGroup[i].shelterShape.length; j++) {
+            //console.log(shapesGroup[i]);
+            currentShadow = shapesGroup[i].shelterShape[j];
+            //console.log("aaaa",coordSystemOrigin,currentShadow,currentShape);
+            var currentShadow2D = coordSystemConversion3To2(coordSystemOrigin, secondCoord, currentShadow);
+            //console.log("currentShadow2D", currentShadow, currentShadow2D);
+            currentShadow2D = turf.polygon([currentShadow2D]);
 
-                //利用求差方法更新非遮挡面
-                currentShape2D = turf.difference(currentShape2D, currentShadow2D);
-                //console.log("currentShadow2D,currentShape2D", currentShadow2D, currentShape2D);
+            //利用求差方法更新非遮挡面
+            currentShape2D = turf.difference(currentShape2D, currentShadow2D);
+            //console.log("currentShadow2D,currentShape2D", currentShadow2D, currentShape2D);
 
-                if (currentShape2D == null) { //说明已经筛到最后没有了
-                    shapesGroup.splice(i, 1);
-                    i--;
-                    continue outer;
-                }
+            if (currentShape2D == null) { //说明已经筛到最后没有了
+                shapesGroup.splice(i, 1);
+                i--;
+                continue outer;
             }
-            visualShapes.push(coordSystemConversion2To3(coordSystemOrigin, coordSystem, currentShape2D));
         }
-        //console.log(visualShapes);
+        visualShapes.push(coordSystemConversion2To3(coordSystemOrigin, coordSystem, currentShape2D));
+    }
+    //console.log(visualShapes);
     return visualShapes;
 }
 
@@ -518,7 +539,7 @@ function secondaryScreening(visualShapes) {
         }
     }
 }
-const calbdVisualArea = (observerPosition, building, observerHeight = 1.6, observedR = 300, observedAngle = [0, 360]) => {
+const calbdVisualArea = (observerPosition, building, observerHeight = 200, observedR = 300, observedAngle = [0, 360]) => {
 
     //观察者
     const midHorizontalMer = turf.toMercator(observerPosition); //墨卡托投影中心点
@@ -551,8 +572,8 @@ const calbdVisualArea = (observerPosition, building, observerHeight = 1.6, obser
                         return prev[2] > cur[2] ? cur : prev
                     })[2], //最低高度
                     height: f[0].reduce((prev, cur) => {
-                            return prev[2] > cur[2] ? prev : cur
-                        })[2] //最高高度
+                        return prev[2] > cur[2] ? prev : cur
+                    })[2] //最高高度
                 },
                 type: 'Feature'
             }
