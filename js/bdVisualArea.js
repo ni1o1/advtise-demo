@@ -7,7 +7,7 @@ function radianToAngle(radian) {
 };
 
 //计算可视区域形状
-function calObservedArea(observerCenter, observerHeight, observedR, observerdAngle) {
+function calObservedArea(observerCenter, observerHeight, observedR, observedDirection, observedAngleRange) {
 
     var observedGroundR = Math.sqrt((Math.pow(observedR, 2)) - (Math.pow(observerHeight, 2))); //地面上的可视化半径
 
@@ -16,6 +16,15 @@ function calObservedArea(observerCenter, observerHeight, observedR, observerdAng
     observedGroundR /= 1000;
     //observerHeight /= 1000;
     observerCenter = turf.toWgs84(observerCenter);
+    //observerdAngle = [0, 0];
+    console.log(observedDirection, observedAngleRange);
+    observerdAngle = [observedDirection - observedAngleRange, observedDirection + observedAngleRange];
+    if (observerdAngle[0] < 0)
+        observerdAngle[0] = 360 + observerdAngle[0];
+    if (observerdAngle[1] > 360)
+        observerdAngle[1] = observerdAngle[1] - 360;
+    console.log(observedDirection, observedAngleRange, observerdAngle);
+
 
     var observedArea = {
         'observerCenter': observerCenter, //观察者中心位置
@@ -147,7 +156,7 @@ function calVisibleBuilding(visualBuildings, observedArea) { //circlePoly,
             //如果立面不在同一直线上：将建筑物面的四个顶点加入到集合中
             if (currentAngle != nextAngle) {
                 if (Math.abs(currentAngle - nextAngle) > 180) {
-                    if (currentAngle < (nextAngle + 360) ) {
+                    if (currentAngle < (nextAngle + 360)) {
                         var shape = new buildingsShapes(shape, buildingHeight, [Math.max(currentAngle, nextAngle),
                         Math.min(nextAngle, currentAngle) + 360
                         ], [], [], currentBuilding);
@@ -539,14 +548,16 @@ function secondaryScreening(visualShapes) {
         }
     }
 }
-const calbdVisualArea = (observerPosition, building, observerHeight = 200, observedR = 300, observedAngle = [0, 360]) => {
+const calbdVisualArea = (observerPosition, building, observerHeight = 200, observedR = 300,
+    observedDirection = 0, observedAngleRange = 30) => {
 
     //观察者
     const midHorizontalMer = turf.toMercator(observerPosition); //墨卡托投影中心点
     const midHorizontalMerPoint = turf.coordAll(midHorizontalMer)[0]; //提取中心点
     /*-----算法:广告影响范围计算----*/
     //初始范围
-    const observedArea = calObservedArea(midHorizontalMerPoint, observerHeight, observedR, observedAngle); //
+    const observedArea = calObservedArea(midHorizontalMerPoint, observerHeight,
+        observedR, observedDirection, observedAngleRange); //
     const circlePoly = getCirclePosition(observedArea); //绘制扇形范围
     //减去建筑阴影范围
     const visualBuildings = getVisualBuilding(circlePoly, building); //计算可视范围内的建筑
