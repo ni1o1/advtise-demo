@@ -36,7 +36,7 @@ function calVisualArea(brandCenterPoint, z, positionAngle, xResolution = 0.01, i
     visualHeight /= 1000;
     brandCenterPoint = turf.toWgs84(brandCenterPoint);
 
-    var visualCenter = turf.rhumbDestination(brandCenterPoint, visualGroundR,
+    var visualCenter = turf.rhumbDestination(brandCenterPoint, visualR,    //S这里应该改成R
         positionAngle, { units: 'kilometers' });
     //console.log("destination", visualCenter);
 
