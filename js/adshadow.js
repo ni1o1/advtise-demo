@@ -36,7 +36,7 @@ function calVisualArea(brandCenterPoint, z, positionAngle, xResolution = 0.01, i
     visualHeight /= 1000;
     brandCenterPoint = turf.toWgs84(brandCenterPoint);
 
-    var visualCenter = turf.rhumbDestination(brandCenterPoint, visualR,    //S这里应该改成R
+    var visualCenter = turf.rhumbDestination(brandCenterPoint, visualR,    //这里应该改成R
         positionAngle, { units: 'kilometers' });
     //console.log("destination", visualCenter);
 
@@ -65,7 +65,7 @@ function getCirclePosition(visualArea) {
     //console.log(circleLine,"circlePoly = ",circlePoly);
 
     //生成圆弧面sector 
-    var circlePoly = turf.circle(visualArea.visualCenter, visualArea.visualR, options);
+    var circlePoly = turf.circle(visualArea.visualCenter, visualArea.visualGroundR, options);
     //console.log("circlePoly = ", circlePoly);
 
     return circlePoly;
